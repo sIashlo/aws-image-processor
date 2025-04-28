@@ -45,11 +45,11 @@
     // ─── EDIT THIS ───
     const BASE = "https://7osvl1bpw3.execute-api.us-east-2.amazonaws.com"; 
     // ─────────────────
-
+  
     let uploadedKey = null;
     let lastOutKey  = null;
     let lastUrl     = null;
-
+  
     const fileInput   = document.getElementById("fileInput");
     const uploadBtn   = document.getElementById("uploadBtn");
     const resizeBtn   = document.getElementById("resizeBtn");
@@ -59,96 +59,76 @@
     const messageDiv  = document.getElementById("message");
     const outputDiv   = document.getElementById("output");
     const downloadBtn = document.getElementById("downloadBtn");
-
+  
     uploadBtn.addEventListener("click", async () => {
       const file = fileInput.files[0];
-      if (!file) {
-        alert("Please choose a file first.");
-        return;
-      }
+      if (!file) return alert("Please choose a file first.");
       messageDiv.textContent = "Fetching upload URL…";
       const key = encodeURIComponent(file.name);
       const res1 = await fetch(`${BASE}/generateUploadURL?key=${key}`);
-      if (!res1.ok) {
-        messageDiv.textContent = "Error getting upload URL.";
-        return;
-      }
+      if (!res1.ok) return messageDiv.textContent = "Error getting upload URL.";
       const { uploadURL } = await res1.json();
-
+  
       messageDiv.textContent = "Uploading…";
-      const res2 = await fetch(uploadURL, {
-        method: "PUT",
-        body: file
-      });
-      if (!res2.ok) {
-        messageDiv.textContent = "Upload failed.";
-        return;
-      }
-      messageDiv.innerHTML = "✅ Upload successful!";
+      const res2 = await fetch(uploadURL, { method: "PUT", body: file });
+      if (!res2.ok) return messageDiv.textContent = "Upload failed.";
+      messageDiv.textContent = "✅ Upload successful!";
       uploadedKey = file.name;
       downloadBtn.disabled = true;
     });
-
+  
     resizeBtn.addEventListener("click", async () => {
-      if (!uploadedKey) {
-        alert("Upload an image first.");
-        return;
-      }
+      if (!uploadedKey) return alert("Upload an image first.");
       const width  = parseInt(widthInput.value, 10);
       const height = parseInt(heightInput.value, 10);
       const format = formatInput.value;
-
+  
       messageDiv.textContent = "Resizing…";
       outputDiv.innerHTML = "";
       downloadBtn.disabled = true;
-
+  
       const res = await fetch(`${BASE}/process-image`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          key: uploadedKey,
-          width, height,
-          format
-        })
+        body: JSON.stringify({ key: uploadedKey, width, height, format })
       });
-
+  
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        messageDiv.textContent = `❌ Error: ${err.error||res.statusText}`;
-        return;
+        return messageDiv.textContent = `❌ Error: ${err.error||res.statusText}`;
       }
-
+  
       const { url, outKey } = await res.json();
       lastOutKey = outKey;
       lastUrl    = url;
-      messageDiv.innerHTML = "✅ Resize complete!";
+      messageDiv.textContent = "✅ Resize complete!";
       const img = document.createElement("img");
       img.src = url;
       outputDiv.appendChild(img);
-
+  
       downloadBtn.disabled = false;
     });
-
+  
     downloadBtn.addEventListener("click", async () => {
       if (!lastUrl || !lastOutKey) return;
       // trigger browser download
       const a = document.createElement("a");
-      a.href = lastUrl;
+      a.href     = lastUrl;
       a.download = lastOutKey;
       document.body.appendChild(a);
       a.click();
       a.remove();
-
+  
       // call cleanup endpoint to delete processed image
       await fetch(`${BASE}/cleanup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ outKey: lastOutKey })
       });
-
+  
       downloadBtn.disabled = true;
       messageDiv.textContent = "✅ Downloaded & deleted processed image";
     });
-  </script>
+  </script>  
 </body>
 </html>
