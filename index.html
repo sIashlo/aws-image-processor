@@ -95,7 +95,7 @@
   
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        return messageDiv.textContent = `❌ Error: ${err.error||res.statusText}`;
+        return messageDiv.textContent = `❌ Error: Please reupload your image.`;
       }
   
       const { url, outKey } = await res.json();
