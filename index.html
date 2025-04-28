@@ -8,7 +8,8 @@
     label { margin-right: 0.5em; }
     select, input { margin-right: 1em; }
     #message { margin-top: 1em; }
-    #output img { max-width: 100%; height: auto; margin-top: 1em; }
+    #output img { max-width: 100%; height: auto; margin-top: 1em; display:block; }
+    #downloadBtn { margin-top: 1em; }
   </style>
 </head>
 <body>
@@ -31,6 +32,8 @@
       <option value="jpeg">JPEG</option>
       <option value="png">PNG</option>
       <option value="webp">WebP</option>
+      <option value="avif">AVIF</option>
+      <option value="gif">GIF</option>
     </select>
 
     <button id="resizeBtn">Resize</button>
@@ -38,6 +41,7 @@
 
   <div id="message"></div>
   <div id="output"></div>
+  <button id="downloadBtn" disabled>Download</button>
 
   <script>
     // ─── EDIT THIS ───
@@ -45,6 +49,8 @@
     // ─────────────────
 
     let uploadedKey = null;
+    let lastOutKey  = null;
+    let lastUrl     = null;
 
     const fileInput   = document.getElementById("fileInput");
     const uploadBtn   = document.getElementById("uploadBtn");
@@ -54,6 +60,7 @@
     const formatInput = document.getElementById("format");
     const messageDiv  = document.getElementById("message");
     const outputDiv   = document.getElementById("output");
+    const downloadBtn = document.getElementById("downloadBtn");
 
     uploadBtn.addEventListener("click", async () => {
       const file = fileInput.files[0];
@@ -61,7 +68,6 @@
         alert("Please choose a file first.");
         return;
       }
-      // generate upload URL
       messageDiv.textContent = "Fetching upload URL…";
       const key = encodeURIComponent(file.name);
       const res1 = await fetch(`${BASE}/generateUploadURL?key=${key}`);
@@ -71,7 +77,6 @@
       }
       const { uploadURL } = await res1.json();
 
-      // PUT the file
       messageDiv.textContent = "Uploading…";
       const res2 = await fetch(uploadURL, {
         method: "PUT",
@@ -83,6 +88,7 @@
       }
       messageDiv.innerHTML = "✅ Upload successful!";
       uploadedKey = file.name;
+      downloadBtn.disabled = true;
     });
 
     resizeBtn.addEventListener("click", async () => {
@@ -96,6 +102,7 @@
 
       messageDiv.textContent = "Resizing…";
       outputDiv.innerHTML = "";
+      downloadBtn.disabled = true;
 
       const res = await fetch(`${BASE}/process-image`, {
         method: "POST",
@@ -113,11 +120,36 @@
         return;
       }
 
-      const { url } = await res.json();
+      const { url, outKey } = await res.json();
+      lastOutKey = outKey;
+      lastUrl    = url;
       messageDiv.innerHTML = "✅ Resize complete!";
       const img = document.createElement("img");
       img.src = url;
       outputDiv.appendChild(img);
+
+      downloadBtn.disabled = false;
+    });
+
+    downloadBtn.addEventListener("click", async () => {
+      if (!lastUrl || !lastOutKey) return;
+      // trigger browser download
+      const a = document.createElement("a");
+      a.href = lastUrl;
+      a.download = lastOutKey;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      // call cleanup endpoint to delete processed image
+      await fetch(`${BASE}/cleanup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ outKey: lastOutKey })
+      });
+
+      downloadBtn.disabled = true;
+      messageDiv.textContent = "✅ Downloaded & deleted processed image";
     });
   </script>
 </body>
