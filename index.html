@@ -92,6 +92,7 @@
       const width  = parseInt(widthInput.value, 10);
       const height = parseInt(heightInput.value, 10);
       const format = formatInput.value;
+      const fit    = fitInput.value;
   
       messageDiv.textContent = "Resizing…";
       outputDiv.innerHTML = "";
@@ -100,7 +101,7 @@
       const res = await fetch(`${BASE}/process-image`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: uploadedKey, width, height, format })
+        body: JSON.stringify({ key: uploadedKey, width, height, format, fit })
       });
   
       if (!res.ok) {
