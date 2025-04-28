@@ -1,0 +1,8 @@
+{
+  "AllowOrigins": ["*"],
+  "AllowMethods": ["GET","POST","OPTIONS"],
+  "AllowHeaders": ["Content-Type","*"],
+  "ExposeHeaders": ["*"],
+  "MaxAge": 0
+}
+
