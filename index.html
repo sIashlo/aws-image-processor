@@ -4,108 +4,123 @@
   <meta charset="UTF-8" />
   <title>Image Resizer</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 2em; }
-    input, button { margin: 0.5em 0; }
-    #status { margin-top: 1em; color: #c00; }
-    #outputImg { display: block; margin-top: 1em; max-width: 100%; }
+    body { font-family: sans-serif; padding: 1em; }
+    label { margin-right: 0.5em; }
+    select, input { margin-right: 1em; }
+    #message { margin-top: 1em; }
+    #output img { max-width: 100%; height: auto; margin-top: 1em; }
   </style>
 </head>
 <body>
   <h1>Image Resizer</h1>
 
-  <label>
-    Choose image:
-    <input type="file" id="fileInput" accept="image/*" />
-  </label>
-  <button id="uploadBtn">Upload</button>
-
   <div>
-    <label>
-      Width (px):
-      <input type="number" id="widthInput" value="400" min="1" />
-    </label>
-    <label>
-      Height (px):
-      <input type="number" id="heightInput" value="400" min="1" />
-    </label>
+    <label>Choose image:</label>
+    <input type="file" id="fileInput" accept="image/*" />
+    <button id="uploadBtn">Upload</button>
+  </div>
+
+  <div style="margin-top:1em;">
+    <label>Width (px):</label>
+    <input type="number" id="widthInput" value="400" min="1" />
+    <label>Height (px):</label>
+    <input type="number" id="heightInput" value="200" min="1" />
+
+    <label>Format:</label>
+    <select id="format">
+      <option value="jpeg">JPEG</option>
+      <option value="png">PNG</option>
+      <option value="webp">WebP</option>
+      <option value="avif">AVIF</option>
+      <option value="gif">GIF</option>
+    </select>
+
     <button id="resizeBtn">Resize</button>
   </div>
 
-  <div id="status">Status messages will appear here</div>
-  <img id="outputImg" alt="Resized image will appear here" />
+  <div id="message"></div>
+  <div id="output"></div>
 
   <script>
-    // ——— API configuration ———
-    const BASE       = 'https://7osvl1bpw3.execute-api.us-east-2.amazonaws.com';
-    const apiUpload  = BASE + '/generateUploadURL';
-    const apiProcess = BASE + '/process-image';
-
-    // ——— UI elements ———
-    const fileIn     = document.getElementById('fileInput');
-    const uploadBtn  = document.getElementById('uploadBtn');
-    const resizeBtn  = document.getElementById('resizeBtn');
-    const widthIn    = document.getElementById('widthInput');
-    const heightIn   = document.getElementById('heightInput');
-    const statusEl   = document.getElementById('status');
-    const outImg     = document.getElementById('outputImg');
+    // ─── EDIT THIS ───
+    const BASE = "https://7osvl1bpw3.execute-api.us-east-2.amazonaws.com"; 
+    // ─────────────────
 
     let uploadedKey = null;
 
-    // ——— Upload handler ———
-    uploadBtn.onclick = async () => {
-      const file = fileIn.files[0];
+    const fileInput   = document.getElementById("fileInput");
+    const uploadBtn   = document.getElementById("uploadBtn");
+    const resizeBtn   = document.getElementById("resizeBtn");
+    const widthInput  = document.getElementById("widthInput");
+    const heightInput = document.getElementById("heightInput");
+    const formatInput = document.getElementById("format");
+    const messageDiv  = document.getElementById("message");
+    const outputDiv   = document.getElementById("output");
+
+    uploadBtn.addEventListener("click", async () => {
+      const file = fileInput.files[0];
       if (!file) {
-        statusEl.textContent = '⚠️ Please select a file first.';
+        alert("Please choose a file first.");
         return;
       }
-      statusEl.textContent = '🔄 Generating upload URL…';
-      try {
-        const resp1 = await fetch(`${apiUpload}?key=${encodeURIComponent(file.name)}`);
-        if (!resp1.ok) throw new Error(`Status ${resp1.status}`);
-        const { uploadURL } = await resp1.json();
-
-        statusEl.textContent = '🔄 Uploading image…';
-        const resp2 = await fetch(uploadURL, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/octet-stream' },
-          body: file
-        });
-        if (!resp2.ok) throw new Error(`Upload failed: ${resp2.status}`);
-
-        uploadedKey = file.name;
-        statusEl.textContent = '✅ Upload successful! Now set dimensions and click Resize.';
-      } catch (err) {
-        statusEl.textContent = '❌ ' + err.message;
+      // generate upload URL
+      messageDiv.textContent = "Fetching upload URL…";
+      const key = encodeURIComponent(file.name);
+      const res1 = await fetch(`${BASE}/generateUploadURL?key=${key}`);
+      if (!res1.ok) {
+        messageDiv.textContent = "Error getting upload URL.";
+        return;
       }
-    };
+      const { uploadURL } = await res1.json();
 
-    // ——— Resize handler ———
-    resizeBtn.onclick = async () => {
+      // PUT the file
+      messageDiv.textContent = "Uploading…";
+      const res2 = await fetch(uploadURL, {
+        method: "PUT",
+        body: file
+      });
+      if (!res2.ok) {
+        messageDiv.textContent = "Upload failed.";
+        return;
+      }
+      messageDiv.innerHTML = "✅ Upload successful!";
+      uploadedKey = file.name;
+    });
+
+    resizeBtn.addEventListener("click", async () => {
       if (!uploadedKey) {
-        statusEl.textContent = '⚠️ Upload an image first.';
+        alert("Upload an image first.");
         return;
       }
-      const w = parseInt(widthIn.value, 10);
-      const h = parseInt(heightIn.value, 10);
-      if (!w || !h) {
-        statusEl.textContent = '⚠️ Enter valid width and height.';
+      const width  = parseInt(widthInput.value, 10);
+      const height = parseInt(heightInput.value, 10);
+      const format = formatInput.value;
+
+      messageDiv.textContent = "Resizing…";
+      outputDiv.innerHTML = "";
+
+      const res = await fetch(`${BASE}/process-image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: uploadedKey,
+          width, height,
+          format
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        messageDiv.textContent = `❌ Error: ${err.error||res.statusText}`;
         return;
       }
-      statusEl.textContent = '🔄 Requesting resize…';
-      try {
-        const resp = await fetch(apiProcess, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: uploadedKey, width: w, height: h })
-        });
-        if (!resp.ok) throw new Error(await resp.text());
-        const { url } = await resp.json();
-        outImg.src = url;
-        statusEl.textContent = '✅ Resize complete!';
-      } catch (err) {
-        statusEl.textContent = '❌ ' + err.message;
-      }
-    };
+
+      const { url } = await res.json();
+      messageDiv.innerHTML = "✅ Resize complete!";
+      const img = document.createElement("img");
+      img.src = url;
+      outputDiv.appendChild(img);
+    });
   </script>
 </body>
 </html>
