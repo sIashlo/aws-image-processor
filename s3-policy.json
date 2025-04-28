@@ -13,6 +13,11 @@
     },
     {
       "Effect":"Allow",
+      "Action":["s3:DeleteObject"],
+      "Resource":["arn:aws:s3:::aws-image-processor-uploads/*"]
+    },
+    {
+      "Effect":"Allow",
       "Action":["s3:PutObject"],
       "Resource":["arn:aws:s3:::aws-image-processor-processed/*"]
     }
