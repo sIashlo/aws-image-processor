@@ -1,9 +1,11 @@
 {
-  "CORSRules": [{
-    "AllowedOrigins": ["*"],
-    "AllowedMethods": ["GET"],
-    "AllowedHeaders": ["*"],
-    "ExposeHeaders": ["*"],
-    "MaxAgeSeconds": 3000
-  }]
+  "CORSRules":[
+    {
+      "AllowedOrigins": ["*"],
+      "AllowedMethods": ["GET"],
+      "AllowedHeaders": ["*"],
+      "ExposeHeaders": [],
+      "MaxAgeSeconds": 3000
+    }
+  ]
 }
